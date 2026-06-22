@@ -576,6 +576,8 @@ export function Editor({
   // Search state
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [replaceQuery, setReplaceQuery] = useState("");
+  const [isReplaceOpen, setIsReplaceOpen] = useState(false);
   const [searchMatches, setSearchMatches] = useState<
     Array<{ from: number; to: number }>
   >([]);
@@ -1305,6 +1307,46 @@ export function Editor({
     setSearchQuery(query);
   }, []);
 
+  const replaceCurrent = useCallback((replaceText: string) => {
+    if (!editor || searchMatches.length === 0) return;
+    const match = searchMatches[currentMatchIndex];
+    if (!match) return;
+
+    editor.view.dispatch(
+      editor.state.tr.insertText(replaceText, match.from, match.to)
+    );
+
+    const newMatches = findMatches(searchQuery, editor);
+    setSearchMatches(newMatches);
+    
+    if (newMatches.length > 0) {
+      const nextIndex = currentMatchIndex % newMatches.length;
+      setCurrentMatchIndex(nextIndex);
+      updateSearchDecorations(newMatches, nextIndex, editor);
+    } else {
+      setCurrentMatchIndex(0);
+      updateSearchDecorations([], 0, editor);
+    }
+  }, [editor, searchQuery, searchMatches, currentMatchIndex, findMatches, updateSearchDecorations]);
+
+  const replaceAll = useCallback((replaceText: string) => {
+    if (!editor || !searchQuery) return;
+    const currentMatches = findMatches(searchQuery, editor);
+    if (currentMatches.length === 0) return;
+
+    const tr = editor.state.tr;
+    for (let i = currentMatches.length - 1; i >= 0; i--) {
+      const match = currentMatches[i];
+      tr.insertText(replaceText, match.from, match.to);
+    }
+    editor.view.dispatch(tr);
+
+    const newMatches = findMatches(searchQuery, editor);
+    setSearchMatches(newMatches);
+    setCurrentMatchIndex(0);
+    updateSearchDecorations(newMatches, 0, editor);
+  }, [editor, searchQuery, findMatches, updateSearchDecorations]);
+
   // Debounced search effect
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -1764,23 +1806,26 @@ export function Editor({
     });
   }, []);
 
-  // Cmd+F to open search (works when document/editor area is focused)
+  // Cmd+F to open search, Cmd+H to open replace (works when document/editor area is focused)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const isF = e.key.toLowerCase() === "f";
+      const isH = e.key.toLowerCase() === "h";
       if (
         (e.metaKey || e.ctrlKey) &&
         !e.shiftKey &&
-        e.key.toLowerCase() === "f"
+        (isF || isH)
       ) {
         if (!currentNote || !editor) return;
 
         const target = e.target as HTMLElement;
         const tagName = target.tagName.toLowerCase();
 
-        // Don't intercept if user is in an input/textarea (except the editor itself)
+        // Don't intercept if user is in an input/textarea (except the editor itself or search toolbar)
         if (
           (tagName === "input" || tagName === "textarea") &&
-          !target.closest(".ProseMirror")
+          !target.closest(".ProseMirror") &&
+          !target.closest(".search-toolbar-container")
         ) {
           return;
         }
@@ -1792,18 +1837,26 @@ export function Editor({
 
         // Open search for the editor
         e.preventDefault();
-        openEditorSearch();
+        setSearchOpen(true);
+        if (isH) {
+          setIsReplaceOpen(true);
+        }
+        requestAnimationFrame(() => {
+          searchInputRef.current?.focus();
+        });
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [editor, currentNote, openEditorSearch]);
+  }, [editor, currentNote]);
 
   // Clear search on note switch
   useEffect(() => {
     if (currentNote?.id) {
       setSearchOpen(false);
       setSearchQuery("");
+      setReplaceQuery("");
+      setIsReplaceOpen(false);
       setSearchMatches([]);
       setCurrentMatchIndex(0);
       // Clear decorations
@@ -2415,6 +2468,8 @@ export function Editor({
                       onClose={() => {
                         setSearchOpen(false);
                         setSearchQuery("");
+                        setReplaceQuery("");
+                        setIsReplaceOpen(false);
                         setSearchMatches([]);
                         setCurrentMatchIndex(0);
                         // Clear decorations and refocus editor
@@ -2427,6 +2482,12 @@ export function Editor({
                         searchMatches.length === 0 ? 0 : currentMatchIndex + 1
                       }
                       totalMatches={searchMatches.length}
+                      replaceQuery={replaceQuery}
+                      onReplaceChange={setReplaceQuery}
+                      onReplace={() => replaceCurrent(replaceQuery)}
+                      onReplaceAll={() => replaceAll(replaceQuery)}
+                      isReplaceOpen={isReplaceOpen}
+                      onToggleReplace={() => setIsReplaceOpen(!isReplaceOpen)}
                     />
                   </div>
                 </div>

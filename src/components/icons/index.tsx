@@ -1518,3 +1518,44 @@ export function OllamaIcon({
     </svg>
   );
 }
+
+export function ReplaceIcon({ className = "w-4.5 h-4.5" }: IconProps) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
+      <path d="M21 3l-7 7" />
+      <path d="M21 3h-5" />
+      <path d="M21 3v5" />
+    </svg>
+  );
+}
+
+export function ReplaceAllIcon({ className = "w-4.5 h-4.5" }: IconProps) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
+      <path d="M21 3l-7 7" />
+      <path d="M21 3h-5" />
+      <path d="M21 3v5" />
+      <path d="M7 14h6" />
+      <path d="M7 10h4" />
+    </svg>
+  );
+}
+
