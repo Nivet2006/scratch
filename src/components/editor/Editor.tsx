@@ -1308,8 +1308,14 @@ export function Editor({
   }, []);
 
   const replaceCurrent = useCallback((replaceText: string) => {
-    if (!editor || searchMatches.length === 0) return;
-    const match = searchMatches[currentMatchIndex];
+    if (!editor || !searchQuery.trim()) return;
+
+    // Recompute from current doc state to avoid stale debounced matches.
+    const currentMatches = findMatches(searchQuery, editor);
+    if (currentMatches.length === 0) return;
+
+    const safeIndex = Math.min(currentMatchIndex, currentMatches.length - 1);
+    const match = currentMatches[safeIndex];
     if (!match) return;
 
     editor.view.dispatch(
@@ -1318,16 +1324,19 @@ export function Editor({
 
     const newMatches = findMatches(searchQuery, editor);
     setSearchMatches(newMatches);
-    
+
     if (newMatches.length > 0) {
-      const nextIndex = currentMatchIndex % newMatches.length;
-      setCurrentMatchIndex(nextIndex);
-      updateSearchDecorations(newMatches, nextIndex, editor);
+      // Move to the first match after the replaced range.
+      const nextPos = match.from + replaceText.length;
+      const nextIndex = newMatches.findIndex((m) => m.from >= nextPos);
+      const resolvedIndex = nextIndex === -1 ? 0 : nextIndex;
+      setCurrentMatchIndex(resolvedIndex);
+      updateSearchDecorations(newMatches, resolvedIndex, editor);
     } else {
       setCurrentMatchIndex(0);
       updateSearchDecorations([], 0, editor);
     }
-  }, [editor, searchQuery, searchMatches, currentMatchIndex, findMatches, updateSearchDecorations]);
+  }, [editor, searchQuery, currentMatchIndex, findMatches, updateSearchDecorations]);
 
   const replaceAll = useCallback((replaceText: string) => {
     if (!editor || !searchQuery) return;

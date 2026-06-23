@@ -74,7 +74,7 @@ export function SearchToolbar({
     if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
-      if (e.metaKey || e.ctrlKey || e.altKey) {
+      if (e.metaKey || e.ctrlKey) {
         onReplaceAll();
       } else {
         onReplace();
@@ -165,7 +165,7 @@ export function SearchToolbar({
             <IconButton
               onClick={onReplaceAll}
               disabled={totalMatches === 0}
-              title="Replace All (Ctrl+Enter)"
+              title="Replace All (Ctrl/Cmd+Enter)"
             >
               <ReplaceAllIcon className="w-4.5 h-4.5 stroke-[1.5]" />
             </IconButton>
